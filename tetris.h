@@ -10,6 +10,10 @@ class Tetris : public QWidget {
 
 public:
     Tetris(QWidget *parent = nullptr);
+    void resetGame();
+
+signals:
+    void gameOver();
 
 protected:
     void paintEvent(QPaintEvent *event) override;

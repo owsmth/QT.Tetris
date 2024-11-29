@@ -16,6 +16,8 @@ Tetris::Tetris(QWidget *parent) : QWidget(parent), blockX(0), blockY(0) {
         {{1, 0}, {1, 0}, {1, 1}},  // L shape
         {{1,1,1}, {0,1,0}},        //T shape
         {{1,1,1}, {0,1,1}},        //Square with additional block
+        {{1,1,1,1}},               // Line shape
+        {{1,0},{1,1},{1,0}},      // Z shape
     };
 
     // Initialize timer
@@ -60,8 +62,8 @@ void Tetris::spawnBlock() {
     blockY = 0;
 
     if (checkCollision(blockX, blockY)) {
-        timer->stop();
-        qDebug() << "Game Over!";
+        emit gameOver(); // Trigger the game over signal
+        return;
     }
 }
 
@@ -89,6 +91,15 @@ void Tetris::rotateBlock() {
         currentShape = originalShape;  // Revert rotation if there's a collision
     }
 }
+
+void Tetris::resetGame() {
+    // Reset game state, such as grid, score, and block positions
+    grid.clear();
+    grid.resize(20, std::vector<int>(10, 0)); // Example: Reset a 20x10 grid
+    spawnBlock();                            // Start with a new block
+    update();                                // Redraw the game
+}
+
 
 
 
