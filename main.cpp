@@ -10,13 +10,13 @@ int main(int argc, char *argv[]) {
     Tetris tetrisGame;
     GameOverScreen gameOverScreen;
 
-    // Transition from Start Screen to Tetris game
+    // Start Screen to Tetris game
     QObject::connect(&startScreen, &StartScreen::startGame, [&]() {
         startScreen.hide();
         tetrisGame.show();
     });
 
-    // Transition from Tetris game to Game Over screen
+    // Tetris game to Game Over screen
     QObject::connect(&tetrisGame, &Tetris::gameOver, [&]() {
         tetrisGame.hide();
         gameOverScreen.show();

@@ -1,10 +1,10 @@
 #include "tetris.h"
-#include <QPainter>
-#include <QKeyEvent>
-#include <cstdlib>
-#include <ctime>
+#include <QPainter> // to color blocks
+#include <QKeyEvent> // control blocks w/ input
+#include <cstdlib> // function manipulation
+#include <ctime> // for any time based operations
 
-Tetris::Tetris(QWidget *parent) : QWidget(parent), blockX(0), blockY(0) {
+Tetris::Tetris(QWidget *parent) : QWidget(parent), blockX(0), blockY(0), score(0) {
     setFixedSize(gridWidth * blockSize, gridHeight * blockSize);
 
     // Initialize grid
@@ -14,11 +14,19 @@ Tetris::Tetris(QWidget *parent) : QWidget(parent), blockX(0), blockY(0) {
     shapes = {
         {{1, 1}, {1, 1}},          // Square shape
         {{1, 0}, {1, 0}, {1, 1}},  // L shape
-        {{1,1,1}, {0,1,0}},        //T shape
-        {{1,1,1}, {0,1,1}},        //Square with additional block
+        {{0, 1}, {0, 1}, {1, 1}},  // Flipped L shape
+        {{1,1,1}, {0,1,0}},        // T shape
         {{1,1,1,1}},               // Line shape
-        {{1,0},{1,1},{1,0}},      // Z shape
+        {{1,0},{1,1},{1,0}},       // Z shape
+        {{0,1},{1,1},{0,1}},       // Flipped Z shape
     };
+
+    // Create and set up score label
+    scoreLabel = new QLabel(this);
+    scoreLabel->setText("Score:");
+    scoreLabel->setAlignment(Qt::AlignCenter);
+    scoreLabel->setGeometry(50, 10, 200, 30);
+    scoreLabel->setStyleSheet("font-size: 16px; color: black; background-color: white;");
 
     // Initialize timer
     timer = new QTimer(this);
@@ -56,6 +64,7 @@ void Tetris::paintEvent(QPaintEvent *event) {
     }
 }
 
+// create falling block
 void Tetris::spawnBlock() {
     currentShape = shapes[rand() % shapes.size()];
     blockX = gridWidth / 2 - currentShape[0].size() / 2;
@@ -67,6 +76,7 @@ void Tetris::spawnBlock() {
     }
 }
 
+// allow rotation
 void Tetris::rotateBlock() {
     // Save the original shape before rotation
     auto originalShape = currentShape;
@@ -86,23 +96,21 @@ void Tetris::rotateBlock() {
     // Check if rotation causes a collision or goes out of bounds
     currentShape = rotatedShape;
 
-    // Try to place the rotated block. If it collides, revert to the original shape.
+    // Try to place the rotated block. If it collides revert to original shape
     if (checkCollision(blockX, blockY)) {
         currentShape = originalShape;  // Revert rotation if there's a collision
     }
 }
 
 void Tetris::resetGame() {
-    // Reset game state, such as grid, score, and block positions
+    // Reset game (grid, score, and block positions)
     grid.clear();
-    grid.resize(20, std::vector<int>(10, 0)); // Example: Reset a 20x10 grid
+    grid.resize(20, std::vector<int>(10, 0)); // Reset a 20x10 grid
     spawnBlock();                            // Start with a new block
-    update();                                // Redraw the game
+    update();                                // Redraw game
 }
 
-
-
-
+//Moves pieces from user input (arrow keys)
 void Tetris::keyPressEvent(QKeyEvent *event) {
     int newX = blockX;
     int newY = blockY;
@@ -135,11 +143,13 @@ void Tetris::updateGame() {
         blockY++;
     } else {
         lockBlock();
+        clearRows();
         spawnBlock();
     }
     update();
 }
 
+// check for collisions between pieces
 bool Tetris::checkCollision(int newX, int newY) {
     for (std::size_t y = 0; y < currentShape.size(); ++y) {
         for (std::size_t x = 0; x < currentShape[y].size(); ++x) {
@@ -161,7 +171,7 @@ bool Tetris::checkCollision(int newX, int newY) {
     }
     return false;
 }
-
+// lock block in place at bottom of game board
 void Tetris::lockBlock() {
     for (std::size_t y = 0; y < currentShape.size(); ++y) {
         for (std::size_t x = 0; x < currentShape[y].size(); ++x) {
@@ -173,6 +183,43 @@ void Tetris::lockBlock() {
                 if (gridX >= 0 && gridX < gridWidth && gridY >= 0 && gridY < gridHeight) {
                     grid[gridY][gridX] = 1;
                 }
+            }
+        }
+    }
+    clearRows(); // Call to clear any filled rows
+}
+
+// if a row is full, clear it and add 100 pts to score
+void Tetris::clearRows() {
+
+    int rowsCleared = 0;
+
+    for (int y = gridHeight - 1; y >= 0; --y) {
+        bool isFull = true;
+        for (int x = 0; x < gridWidth; ++x) {
+            if (grid[y][x] == 0) {
+                isFull = false;
+                break;
+            }
+        }
+
+        if (isFull) {
+            // Remove the row by shifting all rows above it downward
+            for (int row = y; row > 0; --row) {
+                grid[row] = grid[row - 1];
+            }
+            // Clear the topmost row
+            grid[0] = std::vector<int>(gridWidth, 0);
+
+            // Check the same row again since rows have shifted
+            ++rowsCleared;
+            ++y;
+
+            // 100 points for each cleared row
+            if (rowsCleared > 0) {
+                score += rowsCleared * 100;
+
+                scoreLabel->setText(QString("Score: %1").arg(score));
             }
         }
     }
